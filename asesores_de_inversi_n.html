@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es-CO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asesores de Inversión — UNIPAZ</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --azul-marino: #16234F;
+            --verde: #2E9E5B;
+            --azul-claro: #D7E3FA;
+            --blanco: #FFFFFF;
+            --rojo: #d9534f;
+            --gris-fondo: #f4f6f9;
+        }
+        body {
+            font-family: 'Calibri', Arial, sans-serif;
+            background-color: var(--blanco);
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        h1, h2, h3, h4 { font-family: Georgia, serif; color: var(--azul-marino); }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        
+        /* Alerta amarilla */
+        #alerta-datos {
+            background-color: #ffeb3b; color: #856404; padding: 10px;
+            text-align: center; font-weight: bold; display: none;
+        }
+        
+        /* Sección 1: Encabezado */
+        header { text-align: center; padding: 20px 0; border-bottom: 2px solid var(--azul-claro); }
+        .slogan { font-style: italic; color: #555; font-size: 1.1em; }
+        .disclaimer { font-size: 0.8em; color: #777; margin-top: 10px; }
+        
+        /* Sección 2: Equipo */
+        .equipo { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; margin: 30px 0; }
+        .asesor { text-align: center; max-width: 220px; }
+        .foto-container {
+            width: 140px; height: 140px; border-radius: 50%; margin: 0 auto 12px;
+            background-color: var(--azul-marino); color: var(--blanco); display: flex;
+            align-items: center; justify-content: center; font-size: 2.5em; overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            border: 3px solid var(--azul-claro);
+        }
+        .foto-container img { width: 100%; height: 100%; object-fit: cover; }
+        .universidad { text-align: center; font-size: 0.9em; color: #555; font-weight: bold; }
+        
+        /* Sección 3: Perfil */
+        .seccion { background: var(--gris-fondo); padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .progress-bar { background: #ddd; border-radius: 5px; height: 10px; margin-bottom: 20px; overflow: hidden; }
+        .progress { background: var(--verde); height: 100%; width: 0%; transition: width 0.3s; }
+        .opciones-perfil button {
+            display: block; width: 100%; padding: 12px; margin: 8px 0;
+            background: var(--blanco); border: 1px solid var(--azul-claro);
+            border-radius: 5px; cursor: pointer; text-align: left;
+            font-size: 0.95em; transition: background 0.2s, transform 0.1s;
+        }
+        .opciones-perfil button:hover { background: var(--azul-claro); transform: translateX(4px); }
+        #resultado-perfil { display: none; background: var(--azul-claro); padding: 20px; border-radius: 8px; border-left: 5px solid var(--verde); }
+        
+        /* Sección 4: Acciones */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: var(--blanco); }
+        th, td { padding: 10px; text-align: right; border-bottom: 1px solid #ddd; font-size: 0.9em; }
+        th:first-child, td:first-child { text-align: left; }
+        th { background: var(--azul-marino); color: var(--blanco); }
+        tr:hover { background: #f1f1f1; cursor: pointer; }
+        .positivo { color: var(--verde); font-weight: bold; }
+        .negativo { color: var(--rojo); font-weight: bold; }
+        .etiqueta-acorde { background: var(--verde); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.75em; margin-left: 5px;}
+        #modal-grafico {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-content { background: var(--blanco); padding: 20px; border-radius: 8px; width: 90%; max-width: 650px; }
+        
+        /* Sección 5: Simulador */
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .tab-btn { padding: 10px 15px; background: #ddd; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        .tab-btn.activo { background: var(--azul-marino); color: var(--blanco); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .resultados-simulador { background: var(--azul-claro); padding: 20px; border-radius: 8px; margin-top: 20px; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;}
+        .checkbox-item { background: var(--blanco); padding: 8px 12px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; }
+        
+        /* Botones generales */
+        .btn-primario { background: var(--verde); color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; }
+        .btn-primario:hover { opacity: 0.9; }
+        .acciones-finales { display: flex; justify-content: space-between; margin-top: 30px; }
+        footer { text-align: center; margin-top: 40px; padding: 20px; font-size: 0.85em; color: #777; border-top: 1px solid #ddd; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+            .seccion { border: 1px solid #ccc; page-break-inside: avoid; box-shadow: none; }
+            canvas { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="alerta-datos">DATOS DE EJEMPLO — NO SON REALES. Los datos reales aparecen cuando se publique en GitHub.</div>
+
+<div class="container">
+    <!-- Sección 1 -->
+    <header>
+        <h1 id="ui-firma"></h1>
+        <p class="slogan" id="ui-eslogan"></p>
+        <p class="disclaimer">Herramienta académica. No constituye asesoría ni recomendación profesional de inversión.</p>
+    </header>
+
+    <!-- Sección 2 -->
+    <div class="equipo">
+        <div class="asesor">
+            <div class="foto-container">
+                <img id="foto1" src="input_file_0.png" alt="Maira Cardona" onerror="this.style.display='none'; this.parentNode.innerText='MC';">
+            </div>
+            <strong id="nombre-a1"></strong><br>
+            <small>Asesora Financiera</small><br>
+            <span id="frase-a1" style="font-size: 0.9em; color:#555;"></span>
+        </div>
+        <div class="asesor">
+            <div class="foto-container">
+                <img id="foto2" src="input_file_1.png" alt="Felipe Marín" onerror="this.style.display='none'; this.parentNode.innerText='FM';">
+            </div>
+            <strong id="nombre-a2"></strong><br>
+            <small>Asesor Financiero</small><br>
+            <span id="frase-a2" style="font-size: 0.9em; color:#555;"></span>
+        </div>
+    </div>
+    <p class="universidad">Estudiantes de Administración de Negocios Internacionales — UNIPAZ</p>
+
+    <!-- Sección 3 -->
+    <div class="seccion no-print" id="seccion-perfil">
+        <h2>Conozcamos su perfil</h2>
+        <div class="progress-bar"><div class="progress" id="barra-progreso"></div></div>
+        <div id="pregunta-container">
+            <h3 id="texto-pregunta"></h3>
+            <div class="opciones-perfil" id="opciones-container"></div>
+        </div>
+    </div>
+    <div class="seccion" id="resultado-perfil">
+        <h2>Su perfil de riesgo es: <span id="perfil-nombre"></span></h2>
+        <p id="perfil-desc"></p>
+    </div>
+
+    <!-- Sección 4 -->
+    <div class="seccion">
+        <h2>Acciones más populares de Colombia</h2>
+        <div id="msj-acciones-perfil" style="margin-bottom:10px; font-weight:bold; color:var(--azul-marino);"></div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Acción</th>
+                        <th>Sector</th>
+                        <th>Precio</th>
+                        <th>Var. Día</th>
+                        <th>Rent. 1 Año</th>
+                        <th>Rent. 3 Años (Anual)</th>
+                        <th>Riesgo (Volatilidad)</th>
+                        <th>Caída Máx. (1A)</th>
+                        <th>Rend. Dividendo</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-acciones"></tbody>
+            </table>
+        </div>
+        <p style="font-size:0.85em; color:#666; margin-top:10px;" id="fuente-datos"></p>
+    </div>
+
+    <!-- Modal Gráfico -->
+    <div id="modal-grafico" onclick="if(event.target===this) this.style.display='none'">
+        <div class="modal-content">
+            <h3 id="titulo-grafico-accion"></h3>
+            <canvas id="graficoAccion"></canvas>
+            <button class="btn-primario" onclick="document.getElementById('modal-grafico').style.display='none'" style="margin-top:15px; background:var(--azul-marino);">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Sección 5 -->
+    <div class="seccion" id="seccion-simulador">
+        <h2>Simulador de inversión</h2>
+        
+        <div class="form-group">
+            <label>Seleccione en qué invertir:</label>
+            <div class="checkbox-group" id="selector-activos"></div>
+        </div>
+        
+        <div class="form-group" style="max-width:300px;">
+            <label>Rentabilidad base a simular (E.A.):</label>
+            <select id="sel-rentabilidad" onchange="actualizarParametrosSimulador()">
+                <option value="3y" selected>Promedio anual 3 años</option>
+                <option value="1y">Último año</option>
+                <option value="custom">Personalizada</option>
+            </select>
+            <input type="number" id="input-rent-custom" step="0.1" style="display:none; margin-top:5px;" placeholder="Ej: 12.5 (%)" oninput="actualizarParametrosSimulador()">
+        </div>
+
+        <div class="tabs no-print">
+            <button class="tab-btn activo" onclick="cambiarTab(1)">¿Cuánto tendré?</button>
+            <button class="tab-btn" onclick="cambiarTab(2)">¿Cuánto invertir hoy?</button>
+            <button class="tab-btn" onclick="cambiarTab(3)">¿En cuánto tiempo?</button>
+            <button class="tab-btn" onclick="cambiarTab(4)">¿Cuánto ahorrar al mes?</button>
+        </div>
+
+        <!-- Formularios por tab -->
+        <div id="form-tab-1" class="form-tab">
+            <div class="form-group"><label>Capital inicial ($):</label><input type="number" id="f1-cap" value="10000000"></div>
+            <div class="form-group"><label>Aporte mensual ($) (Opcional):</label><input type="number" id="f1-ap" value="200000"></div>
+            <div class="form-group"><label>Años:</label><input type="number" id="f1-anos" min="1" value="5"></div>
+        </div>
+        <div id="form-tab-2" class="form-tab" style="display:none;">
+            <div class="form-group"><label>Meta de dinero ($):</label><input type="number" id="f2-meta" value="50000000"></div>
+            <div class="form-group"><label>Años:</label><input type="number" id="f2-anos" min="1" value="5"></div>
+            <div class="form-group"><label>Aporte mensual ($) (Opcional):</label><input type="number" id="f2-ap" value="500000"></div>
+        </div>
+        <div id="form-tab-3" class="form-tab" style="display:none;">
+            <div class="form-group"><label>Capital inicial ($):</label><input type="number" id="f3-cap" value="5000000"></div>
+            <div class="form-group"><label>Meta de dinero ($):</label><input type="number" id="f3-meta" value="30000000"></div>
+            <div class="form-group"><label>Aporte mensual ($) (Opcional):</label><input type="number" id="f3-ap" value="300000"></div>
+        </div>
+        <div id="form-tab-4" class="form-tab" style="display:none;">
+            <div class="form-group"><label>Capital inicial ($):</label><input type="number" id="f4-cap" value="2000000"></div>
+            <div class="form-group"><label>Meta de dinero ($):</label><input type="number" id="f4-meta" value="20000000"></div>
+            <div class="form-group"><label>Años:</label><input type="number" id="f4-anos" min="1" value="5"></div>
+        </div>
+
+        <button class="btn-primario no-print" onclick="calcularSimulacion()">Calcular Escenarios</button>
+
+        <div class="resultados-simulador" id="resultados-sim" style="display:none;">
+            <h3>Resultados de la Simulación</h3>
+            <p id="txt-resultado-principal" style="font-size:1.2em; font-weight:bold; color:var(--azul-marino);"></p>
+            <p id="txt-escenarios"></p>
+            <p id="txt-detalles"></p>
+            <div style="margin-top:15px; padding:15px; background:white; border-radius:5px; font-size:0.9em; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                <strong>Comparativa y Datos Extra:</strong>
+                <ul id="lista-extras" style="margin:8px 0 0 0; padding-left:20px; line-height: 1.5;"></ul>
+            </div>
+            <canvas id="graficoSimulacion" style="margin-top:20px; background:white; padding:10px; border-radius:5px;"></canvas>
+            <p style="font-size:0.8em; font-style:italic; margin-top:10px;">Rentabilidades pasadas no garantizan rentabilidades futuras.</p>
+        </div>
+    </div>
+
+    <!-- Sección 6 -->
+    <div class="acciones-finales no-print">
+        <button class="btn-primario" onclick="window.print()" style="background:var(--azul-marino);">Imprimir o guardar en PDF</button>
+        <button class="btn-primario" onclick="location.reload()" style="background:#555;">Volver a empezar</button>
+    </div>
+
+    <!-- Sección 7 -->
+    <footer>
+        Proyecto de aula — Mercado de Capitales — UNIPAZ — 2026
+    </footer>
+</div>
+
+<script>
+// ==========================================
+// CONFIGURACIÓN PRINCIPAL
+// ==========================================
+const CONFIG = {
+    firma: "Cardona & Marín",
+    eslogan: "Inversión inteligente para un futuro seguro",
+    asesores: [
+        { nombre: "Maira Cardona", frase: "Especialista en estructuración de portafolios." },
+        { nombre: "Felipe Marín", frase: "Experto en análisis de riesgo y renta variable." }
+    ],
+    tasaCDT: 10.5,      // Tasa CDT por defecto (E.A. en %)
+    inflacion: 6.0,     // Inflación por defecto (E.A. en %)
+    preguntas: [
+        {
+            texto: "¿En cuánto tiempo necesitará el dinero?",
+            opciones: ["Menos de 1 año", "1 a 3 años", "3 a 5 años", "Más de 5 años"]
+        },
+        {
+            texto: "Si su inversión cae 20 % en un mes, ¿qué hace?",
+            opciones: ["Retiro todo", "Retiro una parte", "Espero", "Invierto más"]
+        },
+        {
+            texto: "¿Qué ha invertido antes?",
+            opciones: ["Nada", "CDT o ahorro", "Fondos de inversión", "Acciones"]
+        },
+        {
+            texto: "¿Tiene ahorros para emergencias de 3 a 6 meses?",
+            opciones: ["No", "Menos de 3 meses", "Sí, 3 a 6 meses", "Sí, más de 6 meses"]
+        },
+        {
+            texto: "¿Qué busca?",
+            opciones: ["Proteger mi dinero", "Un poco más que un CDT", "Crecer", "Crecer al máximo"]
+        }
+    ]
+};
+
+// ==========================================
+// VARIABLES GLOBALES
+// ==========================================
+const fmtCOP = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+const fmtPct = new Intl.NumberFormat('es-CO', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 2 });
+let datosReales = null;
+let perfilUsuario = null; // 'Conservador', 'Moderado', 'Arriesgado'
+let pasoPerfil = 0;
+let puntajePerfil = 0;
+let chartAccion = null;
+let chartSim = null;
+let tabActivo = 1;
+
+// ==========================================
+// INICIALIZACIÓN
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('ui-firma').innerText = CONFIG.firma + " — Asesores de Inversión";
+    document.getElementById('ui-eslogan').innerText = CONFIG.eslogan;
+    document.getElementById('nombre-a1').innerText = CONFIG.asesores[0].nombre;
+    document.getElementById('frase-a1').innerText = CONFIG.asesores[0].frase;
+    document.getElementById('nombre-a2').innerText = CONFIG.asesores[1].nombre;
+    document.getElementById('frase-a2').innerText = CONFIG.asesores[1].frase;
+
+    cargarDatos();
+    mostrarPreguntaPerfil();
+});
+
+// ==========================================
+// CARGA DE DATOS
+// ==========================================
+async function cargarDatos() {
+    try {
+        const res = await fetch('datos.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error("No se encontró datos.json");
+        datosReales = await res.json();
+    } catch (e) {
+        document.getElementById('alerta-datos').style.display = 'block';
+        datosReales = generarDatosEjemplo();
+    }
+    
+    let trmTexto = datosReales.trm && datosReales.trm.valor ? ` · TRM: ${fmtCOP.format(datosReales.trm.valor)}` : '';
+    document.getElementById('fuente-datos').innerText = `Fuente: ${datosReales.fuente} · Datos al ${datosReales.actualizado.split('T')[0]}${trmTexto}`;
+    
+    renderizarTablaAcciones();
+    renderizarOpcionesSimulador();
+}
+
+function generarDatosEjemplo() {
+    return {
+        actualizado: new Date().toISOString(),
+        fuente: "Bolsa de Valores de Colombia (Simulado)",
+        trm: { valor: 3950, fecha: "2026-03-01" },
+        acciones: [
+            { nombre: "Ecopetrol", nemotecnico: "ECOPETROL", sector: "Energía", precio: 2380, variacion_dia_pct: 1.2, rent_1a_pct: 8.5, rent_anual_3a_pct: 11.2, volatilidad_anual_pct: 22, caida_maxima_1a_pct: -15, dividendo_rend_pct: 11.5, historico: [{mes:"2023-01", cierre: 2100},{mes:"2024-01", cierre: 2350},{mes:"2025-01", cierre: 2200},{mes:"2026-01", cierre: 2380}] },
+            { nombre: "Bancolombia", nemotecnico: "BCOLOMBIA", sector: "Financiero", precio: 34500, variacion_dia_pct: -0.5, rent_1a_pct: 14.0, rent_anual_3a_pct: 9.8, volatilidad_anual_pct: 17, caida_maxima_1a_pct: -11, dividendo_rend_pct: 8.2, historico: [{mes:"2023-01", cierre: 28000},{mes:"2024-01", cierre: 31000},{mes:"2025-01", cierre: 33000},{mes:"2026-01", cierre: 34500}] },
+            { nombre: "ISA", nemotecnico: "ISA", sector: "Servicios", precio: 18200, variacion_dia_pct: 0.4, rent_1a_pct: 6.2, rent_anual_3a_pct: 7.5, volatilidad_anual_pct: 14, caida_maxima_1a_pct: -8, dividendo_rend_pct: 6.8, historico: [{mes:"2023-01", cierre: 16000},{mes:"2024-01", cierre: 17100},{mes:"2025-01", cierre: 17800},{mes:"2026-01", cierre: 18200}] },
+            { nombre: "Grupo Nutresa", nemotecnico: "NUTRESA", sector: "Consumo", precio: 48000, variacion_dia_pct: 2.1, rent_1a_pct: 28.0, rent_anual_3a_pct: 18.5, volatilidad_anual_pct: 32, caida_maxima_1a_pct: -24, dividendo_rend_pct: 3.1, historico: [{mes:"2023-01", cierre: 36000},{mes:"2024-01", cierre: 41000},{mes:"2025-01", cierre: 44000},{mes:"2026-01", cierre: 48000}] }
+        ]
+    };
+}
+
+// ==========================================
+// SECCIÓN: PERFIL
+// ==========================================
+function mostrarPreguntaPerfil() {
+    if (pasoPerfil >= CONFIG.preguntas.length) {
+        finalizarPerfil();
+        return;
+    }
+    const q = CONFIG.preguntas[pasoPerfil];
+    document.getElementById('texto-pregunta').innerText = `${pasoPerfil+1}. ${q.texto}`;
+    document.getElementById('barra-progreso').style.width = `${(pasoPerfil / CONFIG.preguntas.length)*100}%`;
+    
+    let html = '';
+    q.opciones.forEach((op, index) => {
+        let pts = index + 1;
+        html += `<button onclick="responderPerfil(${pts})">${op}</button>`;
+    });
+    document.getElementById('opciones-container').innerHTML = html;
+}
+
+function responderPerfil(puntos) {
+    puntajePerfil += puntos;
+    pasoPerfil++;
+    mostrarPreguntaPerfil();
+}
+
+function finalizarPerfil() {
+    document.getElementById('barra-progreso').style.width = '100%';
+    document.getElementById('pregunta-container').style.display = 'none';
+    
+    let nombre = "Conservador";
+    let desc = "Prefiere la seguridad de su dinero por encima de altas ganancias. Soporta muy poca volatilidad.";
+    
+    if (puntajePerfil >= 10 && puntajePerfil <= 15) {
+        nombre = "Moderado";
+        desc = "Busca un equilibrio entre crecimiento y seguridad. Tolera caídas temporales moderadas.";
+    } else if (puntajePerfil >= 16) {
+        nombre = "Arriesgado";
+        desc = "Busca el máximo crecimiento a largo plazo y está dispuesto a soportar fuertes caídas y alta volatilidad.";
+    }
+    
+    if (nombre === "Conservador") {
+        desc += " Para su perfil, las acciones deberían ser una parte pequeña de su dinero; considere primero CDT, TES o fondos de renta fija.";
+    }
+    
+    perfilUsuario = nombre;
+    document.getElementById('perfil-nombre').innerText = nombre;
+    document.getElementById('perfil-desc').innerText = desc;
+    document.getElementById('resultado-perfil').style.display = 'block';
+    
+    renderizarTablaAcciones();
+}
+
+// ==========================================
+// SECCIÓN: ACCIONES
+// ==========================================
+function getRiesgo(volatilidad) {
+    if (volatilidad < 16) return "Bajo";
+    if (volatilidad <= 28) return "Medio";
+    return "Alto";
+}
+
+function renderizarTablaAcciones() {
+    if (!datosReales) return;
+    let html = '';
+    let alMenosUnaAcorde = false;
+
+    datosReales.acciones.forEach((acc, i) => {
+        let riesgoStr = getRiesgo(acc.volatilidad_anual_pct);
+        let esAcorde = false;
+        if (perfilUsuario) {
+            if (perfilUsuario === "Conservador" && riesgoStr === "Bajo") esAcorde = true;
+            if (perfilUsuario === "Moderado" && (riesgoStr === "Bajo" || riesgoStr === "Medio")) esAcorde = true;
+            if (perfilUsuario === "Arriesgado") esAcorde = true;
+        }
+
+        if (esAcorde) alMenosUnaAcorde = true;
+
+        let varClase = acc.variacion_dia_pct >= 0 ? 'positivo' : 'negativo';
+        let var1aClase = acc.rent_1a_pct >= 0 ? 'positivo' : 'negativo';
+
+        html += `<tr onclick="abrirGraficoAccion(${i})">
+            <td><strong>${acc.nombre}</strong> (${acc.nemotecnico})
+                ${esAcorde ? '<span class="etiqueta-acorde">Acorde a su perfil</span>' : ''}
+            </td>
+            <td>${acc.sector}</td>
+            <td>${fmtCOP.format(acc.precio)}</td>
+            <td class="${varClase}">${(acc.variacion_dia_pct>0?'+':'')}${fmtPct.format(acc.variacion_dia_pct/100)}</td>
+            <td class="${var1aClase}">${fmtPct.format(acc.rent_1a_pct/100)}</td>
+            <td>${fmtPct.format(acc.rent_anual_3a_pct/100)}</td>
+            <td>${riesgoStr} (${fmtPct.format(acc.volatilidad_anual_pct/100)})</td>
+            <td class="negativo">${fmtPct.format(acc.caida_maxima_1a_pct/100)}</td>
+            <td>${fmtPct.format(acc.dividendo_rend_pct/100)}</td>
+        </tr>`;
+    });
+    document.getElementById('tabla-acciones').innerHTML = html;
+
+    if (perfilUsuario && !alMenosUnaAcorde) {
+        document.getElementById('msj-acciones-perfil').innerText = "Ninguna de estas acciones tiene riesgo bajo; para su perfil conviene priorizar instrumentos de renta fija.";
+    } else {
+        document.getElementById('msj-acciones-perfil').innerText = "";
+    }
+}
+
+function abrirGraficoAccion(index) {
+    const acc = datosReales.acciones[index];
+    document.getElementById('modal-grafico').style.display = 'flex';
+    document.getElementById('titulo-grafico-accion').innerText = `${acc.nombre} - Precio históricos`;
+
+    const labels = acc.historico.map(h => h.mes);
+    const data = acc.historico.map(h => h.cierre);
+
+    if (chartAccion) chartAccion.destroy();
+    const ctx = document.getElementById('graficoAccion').getContext('2d');
+    chartAccion = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Precio de Cierre (COP)',
+                data: data,
+                borderColor: '#16234F',
+                backgroundColor: 'rgba(22, 35, 79, 0.1)',
+                tension: 0.2,
+                fill: true
+            }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: false } } }
+    });
+}
+
+// ==========================================
+// SECCIÓN: SIMULADOR
+// ==========================================
+function renderizarOpcionesSimulador() {
+    let html = '';
+    datosReales.acciones.forEach((acc, i) => {
+        html += `<label class="checkbox-item"><input type="checkbox" name="sim-activo" value="${i}" checked onchange="actualizarParametrosSimulador()"> ${acc.nemotecnico}</label>`;
+    });
+    document.getElementById('selector-activos').innerHTML = html;
+}
+
+function cambiarTab(tab) {
+    tabActivo = tab;
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.className = (i+1) === tab ? 'tab-btn activo' : 'tab-btn';
+    });
+    document.querySelectorAll('.form-tab').forEach((el, i) => {
+        el.style.display = (i+1) === tab ? 'block' : 'none';
+    });
+    document.getElementById('resultados-sim').style.display = 'none';
+}
+
+function actualizarParametrosSimulador() {
+    const sel = document.getElementById('sel-rentabilidad').value;
+    document.getElementById('input-rent-custom').style.display = (sel === 'custom') ? 'block' : 'none';
+}
+
+function obtenerParametrosCanasta() {
+    const checks = document.querySelectorAll('input[name="sim-activo"]:checked');
+    if (checks.length === 0) return null;
+    
+    let sumR = 0, sumVol = 0, sumPrecio = 0;
+    const tipoR = document.getElementById('sel-rentabilidad').value;
+    const customR = parseFloat(document.getElementById('input-rent-custom').value) / 100 || 0;
+
+    checks.forEach(chk => {
+        const acc = datosReales.acciones[chk.value];
+        if (tipoR === '3y') sumR += (acc.rent_anual_3a_pct / 100);
+        else if (tipoR === '1y') sumR += (acc.rent_1a_pct / 100);
+        else sumR += customR;
+        
+        sumVol += (acc.volatilidad_anual_pct / 100);
+        sumPrecio += acc.precio;
+    });
+
+    return {
+        r: sumR / checks.length,
+        vol: sumVol / checks.length,
+        numActivos: checks.length,
+        precioPromedio: sumPrecio / checks.length,
+        nombres: Array.from(checks).map(c => datosReales.acciones[c.value].nemotecnico).join(", ")
+    };
+}
+
+function calcularSimulacion() {
+    const params = obtenerParametrosCanasta();
+    if (!params) { 
+        const msg = document.createElement('div');
+        msg.innerText = "Por favor, seleccione al menos una acción para simular.";
+        msg.style.cssText = "background:#d9534f; color:white; padding:10px; border-radius:5px; margin-top:10px;";
+        document.getElementById('seccion-simulador').appendChild(msg);
+        setTimeout(() => msg.remove(), 3000);
+        return; 
+    }
+
+    let { r, vol } = params;
+    let n, C, A, meta, mesesTotal = 0;
+    let r_pesimista, r_esperado = r, r_optimista;
+
+    const val = (id) => parseFloat(document.getElementById(id).value) || 0;
+
+    const calcVF = (c, a, r_anual, anos) => {
+        let i = Math.pow(1 + r_anual, 1/12) - 1;
+        if (i === 0) return c + (a * 12 * anos);
+        return c * Math.pow(1 + r_anual, anos) + a * ((Math.pow(1 + i, 12 * anos) - 1) / i);
+    };
+
+    if (tabActivo === 1) { // ¿Cuánto tendré?
+        C = val('f1-cap'); A = val('f1-ap'); n = val('f1-anos');
+        if (n <= 0) return;
+        r_pesimista = r - (vol / Math.sqrt(n));
+        r_optimista = r + (vol / Math.sqrt(n));
+        meta = calcVF(C, A, r, n);
+    } 
+    else if (tabActivo === 2) { // ¿Cuánto invertir hoy?
+        meta = val('f2-meta'); n = val('f2-anos'); A = val('f2-ap');
+        if (n <= 0) return;
+        let i = Math.pow(1 + r, 1/12) - 1;
+        
+        if (r <= 0) {
+            C = meta - (A * 12 * n);
+        } else {
+            let FV_aportes = A * ((Math.pow(1 + i, 12 * n) - 1) / i);
+            C = (meta - FV_aportes) / Math.pow(1 + r, n);
+        }
+        if (C < 0) C = 0;
+        
+        r_pesimista = r - (vol / Math.sqrt(n));
+        r_optimista = r + (vol / Math.sqrt(n));
+    }
+    else if (tabActivo === 3) { // ¿En cuánto tiempo?
+        C = val('f3-cap'); meta = val('f3-meta'); A = val('f3-ap');
+        let i = Math.pow(1 + r, 1/12) - 1;
+        let capitalAcumulado = C;
+        mesesTotal = 0;
+        while(capitalAcumulado < meta && mesesTotal < 1200) {
+            capitalAcumulado = capitalAcumulado * (1 + i) + A;
+            mesesTotal++;
+        }
+        n = mesesTotal / 12;
+        r_pesimista = r - (vol / Math.sqrt(n>0?n:1));
+        r_optimista = r + (vol / Math.sqrt(n>0?n:1));
+    }
+    else if (tabActivo === 4) { // ¿Cuánto ahorrar al mes?
+        C = val('f4-cap'); meta = val('f4-meta'); n = val('f4-anos');
+        if (n <= 0) return;
+        let i = Math.pow(1 + r, 1/12) - 1;
+        
+        if (r <= 0) {
+            A = (meta - C) / (12 * n);
+        } else {
+            let FV_C = C * Math.pow(1 + r, n);
+            A = (meta - FV_C) * i / (Math.pow(1 + i, 12 * n) - 1);
+        }
+        if (A < 0) A = 0;
+        
+        r_pesimista = r - (vol / Math.sqrt(n));
+        r_optimista = r + (vol / Math.sqrt(n));
+    }
+
+    let txtPrincipal = "";
+    if (tabActivo === 3 && mesesTotal >= 1200) {
+        txtPrincipal = "La meta no se alcanza en 100 años con esta rentabilidad y aportes.";
+        document.getElementById('txt-escenarios').innerText = "";
+        document.getElementById('txt-detalles').innerText = "";
+        document.getElementById('lista-extras').innerHTML = "";
+        if(chartSim) chartSim.destroy();
+        document.getElementById('resultados-sim').style.display = 'block';
+        return;
+    }
+
+    if (tabActivo === 1) txtPrincipal = `En ${n} años, tendrá aprox. ${fmtCOP.format(meta)}`;
+    if (tabActivo === 2) txtPrincipal = C === 0 ? "Los aportes mensuales bastan para alcanzar la meta. No necesita inversión inicial hoy." : `Debe invertir hoy aprox. ${fmtCOP.format(C)} (con rentabilidad esperada)`;
+    if (tabActivo === 3) txtPrincipal = `Alcanzará la meta en aprox. ${Math.floor(mesesTotal/12)} años y ${mesesTotal%12} meses`;
+    if (tabActivo === 4) txtPrincipal = A === 0 ? "El capital inicial basta para la meta. No necesita aportes mensuales." : `Debe ahorrar al mes aprox. ${fmtCOP.format(A)}`;
+
+    let vf_pesimista = calcVF(C, A, r_pesimista, n);
+    let vf_optimista = calcVF(C, A, r_optimista, n);
+    let total_aportado = C + (A * 12 * n);
+
+    document.getElementById('txt-resultado-principal').innerText = txtPrincipal;
+    document.getElementById('txt-escenarios').innerHTML = `
+        <strong>Escenarios al final del plazo (Rango aproximado):</strong><br>
+        <span style="color:var(--rojo);">Pesimista: ${fmtCOP.format(vf_pesimista)}</span> | 
+        <span style="color:var(--azul-marino);">Esperado: ${fmtCOP.format(meta)}</span> | 
+        <span style="color:var(--verde);">Optimista: ${fmtCOP.format(vf_optimista)}</span>
+    `;
+    document.getElementById('txt-detalles').innerText = `Total aportado de su bolsillo: ${fmtCOP.format(total_aportado)} | Ganancia estimada: ${fmtCOP.format(meta - total_aportado)}`;
+
+    let r_real = ((1 + r) / (1 + (CONFIG.inflacion/100))) - 1;
+    let numAcciones = C > 0 ? Math.floor(C / (params.precioPromedio * params.numActivos)) : 0;
+    let sobrante = C > 0 ? C - (numAcciones * params.precioPromedio * params.numActivos) : 0;
+
+    let extrasHtml = `
+        <li><strong>Rentabilidad Efectiva Anual (E.A.):</strong> ${fmtPct.format(r)} (Rentabilidad real frente a inflación estimada del ${CONFIG.inflacion}%: ${fmtPct.format(r_real)})</li>
+        <li><strong>Comparativa CDT:</strong> Tasa referencia ${fmtPct.format(CONFIG.tasaCDT/100)} E.A. (Su selección supera al CDT en ${fmtPct.format(r - (CONFIG.tasaCDT/100))})</li>
+    `;
+    if (C > 0 && params.numActivos === 1) {
+        extrasHtml += `<li>Con su capital inicial (${fmtCOP.format(C)}) puede comprar hoy <strong>${numAcciones}</strong> acciones enteras de ${params.nombres} (Saldo sobrante: ${fmtCOP.format(sobrante)}).</li>`;
+    } else if (C > 0) {
+        extrasHtml += `<li>Con su capital inicial, distribuyendo en montos iguales, adquiere <strong>${numAcciones}</strong> acciones de cada activo (${params.nombres}) con un sobrante de ${fmtCOP.format(sobrante)}.</li>`;
+    }
+    
+    document.getElementById('lista-extras').innerHTML = extrasHtml;
+
+    generarGraficoSimulacion(C, A, r_pesimista, r, r_optimista, n);
+
+    document.getElementById('resultados-sim').style.display = 'block';
+}
+
+function generarGraficoSimulacion(C, A, r_pes, r_esp, r_opt, n) {
+    if (chartSim) chartSim.destroy();
+    
+    const maxAnos = Math.ceil(n);
+    let labels = [];
+    let dPes = [], dEsp = [], dOpt = [], dApor = [];
+    
+    for (let t = 0; t <= maxAnos; t++) {
+        labels.push("Año " + t);
+        if (t === 0) {
+            dPes.push(C); dEsp.push(C); dOpt.push(C); dApor.push(C);
+        } else {
+            let calc = (r_a) => {
+                let i = Math.pow(1+r_a, 1/12)-1;
+                if(i===0) return C + (A * 12 * t);
+                return C * Math.pow(1+r_a, t) + A * ((Math.pow(1+i, 12*t)-1)/i);
+            };
+            dPes.push(calc(r_pes));
+            dEsp.push(calc(r_esp));
+            dOpt.push(calc(r_opt));
+            dApor.push(C + (A * 12 * t));
+        }
+    }
+
+    const ctx = document.getElementById('graficoSimulacion').getContext('2d');
+    chartSim = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Escenario Optimista', data: dOpt, borderColor: '#2E9E5B', fill: false, tension: 0.1 },
+                { label: 'Escenario Esperado', data: dEsp, borderColor: '#16234F', fill: false, borderWidth: 3, tension: 0.1 },
+                { label: 'Escenario Pesimista', data: dPes, borderColor: '#d9534f', fill: false, tension: 0.1 },
+                { label: 'Total Aportado', data: dApor, borderColor: '#888', borderDash: [5, 5], fill: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + fmtCOP.format(context.raw);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) { return '$' + (value/1000000).toFixed(1) + 'M'; }
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+</body>
+</html>
